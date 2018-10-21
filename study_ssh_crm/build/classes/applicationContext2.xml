@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.2.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.2.xsd http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.2.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.2.xsd ">
+	
+	<!-- 指定spring读取db.properties -->
+	<context:property-placeholder location="classpath:db.properties" />
+
+	<!-- name的名称要写对，不然加载不上 -->
+	<bean name="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+		<property name="driverClass" value="${jdbc.driverClass}"></property>
+		<property name="jdbcUrl" value="${jdbc.jdbcUrl}"></property>
+		<property name="user" value="${jdbc.user}"></property>
+		<property name="password" value="${jdbc.password}"></property>
+	</bean>
+	
+	<!-- 配置hibernate -->
+	<!-- 第一种方案，在spring中加载外部的hibernate配置文件，不推荐 -->
+	<!-- 
+		<bean name="sessionFactory" class="org.springframework.orm.hibernate5.LocalSessionFactoryBean">
+			<property name="configLocation" value="classpath:hibernate.cfg.xml"></property>
+		</bean>
+	 -->
+	<!-- 第二种方案，在spring中配置，推荐 -->
+	<bean name="sessionFactory" class="org.springframework.orm.hibernate5.LocalSessionFactoryBean">
+		<!-- 把dataSource注入到sessionFactory中，sessionFactory会自动从连接池中获取连接 -->
+		<property name="dataSource" ref="dataSource"></property>
+		<property name="hibernateProperties">
+			<props>
+				<!-- 
+					配置了连接池，就不需要这些了
+					<prop key="hibernate.connection.driver_class">com.mysql.jdbc.Driver</prop>
+					<prop key="hibernate.connection.url">jdbc:mysql:///crm</prop>
+					<prop key="hibernate.connection.username">root</prop>
+					<prop key="hibernate.connection.password"></prop>
+					<prop key="hibernate.dialect">org.hibernate.dialect.MySQLDialect</prop>
+				 -->
+				
+				<prop key="hibernate.show_sql">true</prop>
+				<prop key="hibernate.format_sql">true</prop>
+				<prop key="hibernate.hbm2ddl.auto">update</prop>
+			</props>
+		</property>
+		<!-- 只需书写hibernate元数据所在包的路径，spring就能自动导入 -->
+		<property name="mappingDirectoryLocations" value="classpath:cn/hyz/domain"></property>
+	</bean>
+	
+	<!-- 配置action,需要注意使用第二种方案配置，bean的scope属性一定要是多例的 -->
+	<bean name="userAction" class="cn.hyz.web.action.UserAction" scope="prototype">
+		<property name="userService" ref="userService"></property>
+	</bean>
+	<!-- 配置service -->
+	<bean name="userService" class="cn.hyz.service.impl.UserServiceImpl">
+		<property name="dao" ref="userDao"></property>
+	</bean>
+	<!-- 配置dao -->
+	<bean name="userDao" class="cn.hyz.dao.impl.UserDaoImpl">
+		<property name="sessionFactory" ref="sessionFactory"></property>
+	</bean>
+	
+	<!-- 配置核心事务管理器 -->
+	<bean name="transactionManager" class="org.springframework.orm.hibernate5.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory"></property>
+	</bean>
+	<!-- 开启使用注解事务 -->
+	<tx:annotation-driven transaction-manager="transactionManager"/>
+</beans>

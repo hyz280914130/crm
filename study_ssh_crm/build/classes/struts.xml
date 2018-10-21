@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+  <!DOCTYPE struts PUBLIC
+	"-//Apache Software Foundation//DTD Struts Configuration 2.3//EN"
+	"http://struts.apache.org/dtds/struts-2.3.dtd">
+	
+<struts>
+	<!-- #  struts.objectFactory = spring	将action的创建交给spring容器	
+			struts.objectFactory.spring.autoWire = name spring负责装配Action依赖属性，
+					也就是说在applicationContext的配置文件中的bean不需要填写，property属性，spring会自动装配，
+					只是name是按照bean的name来自动注入，所以要注入的bean的名字和属性变量的名字要一样
+	-->
+	<constant name="struts.objectFactory" value="spring"></constant>
+	
+	<!-- 配置拦截器 -->
+	<package name="interceptor" namespace="/interceptor" extends="struts-default">
+		<interceptors>
+			<interceptor name="autoLogin" class="cn.hyz.inteceptor.AutoLogin">
+			</interceptor>
+			<interceptor-stack name="myStack">
+				<interceptor-ref name="autoLogin"></interceptor-ref>
+				<interceptor-ref name="defaultStack"></interceptor-ref>
+			</interceptor-stack>
+		</interceptors>
+		<default-interceptor-ref name="myStack"></default-interceptor-ref>
+		<global-results>
+			<result name="toLogin" type="redirect" >/login.jsp</result>
+		</global-results>
+	</package>
+	
+	<!-- 
+		一、第一种整合方案：action的class属性上仍然填写action完整类名，代表action仍然有struts2创建
+			只不过由spring来组装Action中的依赖属性，就是service、dao这些东西，但是这种方案不推荐使用，
+			因为希望由spring来管理Action的生命周期
+	 -->
+	 <!-- 
+	 	二、第二种整合方案：action中填写spring配置文件中对应action的bean名称，需要注意这种配置spring不能自动装配，
+	 						需要我们自己填写property注入属性
+	  -->
+	<package name="crm" namespace="/" extends="struts-default">
+	
+		<!-- 配置异常信息处理 -->
+		<global-exception-mappings>
+			<exception-mapping result="error" exception="java.lang.RuntimeException"></exception-mapping>
+		</global-exception-mappings>
+		
+		<action name="UserAction_*" class="userAction" method="{1}" >
+			<result name="toHome" type="redirect" >/index.htm</result>
+			<result name="toLogin" type="redirect">/login.jsp</result>
+			<result name="error" >/login.jsp</result>
+		</action>
+		
+		<action name="CustomerAction_*" class="customerAction" method="{1}" >
+			<result name="list">/jsp/customer/list.jsp</result>
+		</action>
+	</package>
+	
+	
+	
+</struts>
